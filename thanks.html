@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!-- Stand-in for a server: lists the name=value pairs a form sent with method="get". Used by form activities (action="thanks.html"). -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Form received</title>
+  <style>
+    body { margin: 0; font-family: Verdana, sans-serif; background-color: #FAF5EE; color: #3B261A; }
+    header { background-color: #3B261A; color: #FAF5EE; padding: 14px 24px; }
+    header h1 { margin: 0; font-family: "Trebuchet MS", sans-serif; font-size: 1.4em; }
+    main { padding: 16px 24px; }
+    h2 { color: #96603A; font-family: "Trebuchet MS", sans-serif; }
+    table { border-collapse: collapse; background-color: white; min-width: 60%; }
+    th, td { border: 1px solid #E1D2BE; padding: 6px 12px; text-align: left; }
+    th { background-color: #3B261A; color: #FAF5EE; }
+    code { display: block; background-color: #F4F1EC; border-left: 4px solid #96603A; padding: 8px 12px; margin-top: 8px; word-break: break-all; }
+    a { color: #00796B; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <header><h1>Form received</h1></header>
+  <main>
+    <h2>Thank you, your form was sent!</h2>
+    <p>This is what your form sent. Each row is one <strong>name</strong> and the <strong>value</strong> chosen or typed.</p>
+    <table>
+      <thead><tr><th>name</th><th>value</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="2">Nothing was sent. Does your form use method="get"?</td></tr></tbody>
+    </table>
+    <p>Exactly as it appears after the <strong>?</strong> in the address:</p>
+    <code id="raw">(empty)</code>
+    <p><a href="javascript:history.back()">&larr; Back to the form</a></p>
+  </main>
+  <script>
+    const params = new URLSearchParams(location.search);
+    if (location.search.length > 1) {
+      const rows = document.getElementById('rows');
+      rows.innerHTML = '';
+      for (const [name, value] of params) {
+        const tr = document.createElement('tr');
+        const a = document.createElement('td'), b = document.createElement('td');
+        a.textContent = name; b.textContent = value === '' ? '(left empty)' : value;
+        tr.append(a, b); rows.append(tr);
+      }
+      document.getElementById('raw').textContent = location.search.slice(1);
+    }
+  </script>
+</body>
+</html>

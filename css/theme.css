@@ -1,0 +1,24 @@
+/* React Code Lab theme: Movie Night navy and amber (CSIS 3380 case study). */
+:root {
+  --brown: #1F3A5F;      /* dark: top bar, headings */
+  --copper: #A86A0B;     /* accent text (darker amber for contrast) */
+  --tan: #F2B134;        /* amber on the dark bar */
+  --cream: #EEF2F7;      /* page background */
+  --sand: #E1E7F0;
+  --line: #D3DBE7;
+  --teal: #1F6FC5;       /* buttons, success */
+  --teal-dark: #17589E;
+  --teal-soft: #E7F0FB;
+  --ink: #1E2633;
+  --muted: #5B6779;
+  --red: #C0392B;
+  --red-soft: #FDEEEC;
+  --green-soft: #E6F4EC;
+  --amber: #C98A1B;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(31, 58, 95, .08), 0 4px 14px rgba(31, 58, 95, .07);
+}
+/* the case-study pictures are diagrams and screenshots: show them whole on white */
+.brief .brief-art, .act-card .act-art, .how-list .how-art { object-fit: contain; background: white; border: 1px solid var(--line); }
+.great { --c: #1F6FC5; } .good { --c: #2E8B57; }
+.step.done.great { background: #1F6FC5; border-color: #1F6FC5; }
