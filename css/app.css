@@ -271,3 +271,7 @@ pre.diff { margin: 0; max-height: 420px; overflow: auto; background: #FBF9F6; bo
 .console pre { margin: 0; flex: 1; max-height: 120px; overflow: auto; font: .82rem ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; }
 .console pre.has-error { color: #FFB4A8; }
 .console pre.has-warning:not(.has-error) { color: #F6D58E; }
+
+/* a step can show the exact lines to type: steps: [{ text: '…', code: '…' }] */
+.steps pre.step-code { margin: 6px 0 4px; padding: 8px 10px; background: #F4F1EC; border-left: 4px solid var(--copper); border-radius: 6px;
+  font: .78rem/1.45 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-all; user-select: all; }

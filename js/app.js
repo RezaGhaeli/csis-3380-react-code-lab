@@ -169,7 +169,7 @@
         <p>${md(a.story)}</p>
         <div class="you-edit ${a.edit}">You write the <strong>${kind(a.edit)}</strong> in <code>${FILES[a.edit]}</code>.${given.length ? ` The ${given.join(' and ')} ${given.length > 1 ? 'are' : 'is'} given.` : ''}</div>
         <h2>Your task</h2>
-        <ol class="steps">${a.steps.map(s => `<li>${md(s)}</li>`).join('')}</ol>
+        <ol class="steps">${a.steps.map(s => typeof s === 'string' ? `<li>${md(s)}</li>` : `<li>${md(s.text)}${s.code ? `<pre class="step-code">${esc(s.code)}</pre>` : ''}</li>`).join('')}</ol>
         <details class="checklist"><summary>What will be checked (${a.checks.length} items)</summary>
           <ul>${a.checks.map(c => `<li>${md(c.text)} <span class="pts">${c.pts} pt${c.pts > 1 ? 's' : ''}</span></li>`).join('')}</ul>
         </details>

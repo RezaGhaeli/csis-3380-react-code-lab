@@ -23,7 +23,7 @@ const LAB = {
     { img: 'img/how-hooks.png', title: 'Run and submit', text: 'Your app re-renders as you type. Submit when it matches the goal.' },
     { img: 'img/how-cafe-router.png', title: 'Learn from the report', text: 'See each mistake, why it matters, the proper code, and your score.' }
   ],
-  guide: null,                           // e.g. 'guide/Student_Guide.pdf' adds a "Student guide" button
+  guide: 'guide/React-Code-Lab-Student-Guide.pdf',                           // e.g. 'guide/Student_Guide.pdf' adds a "Student guide" button
 
   files: { html: 'index.html', css: 'app.css', js: 'app.js' },   // names on the editor tabs and in <link>/<script src>
   jsx: true,                            // true: compile the JS file from JSX with Babel (React labs); see the React section of the authoring guide

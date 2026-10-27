@@ -96,13 +96,17 @@ const ACTIVITIES = [
 {
   id: 1, module: 'Module 4', topic: 'Adding React to a page', edit: 'html', art: 'img/a01-jsx-babel.png',
   title: 'Add React to the Movie Night Page',
-  story: 'The Movie Night `app.js` is written, but `index.html` loads nothing, so the page is empty. Load React the way we did in class: from the CDN, in the right order, with Babel translating the JSX.',
+  story: 'The Movie Night `app.js` is written, but `index.html` loads nothing, so the page is empty. A React page needs four things: an empty element for React to fill, the React library, a translator for JSX (Babel), and your code. Nothing is installed: the libraries come from **unpkg**, a free CDN (a website that serves code files), just as in class.',
   steps: [
-    'Inside `<body>`, add `<div id="root"></div>`: the one element React controls.',
-    'Below it, add the React script, then the ReactDOM script (`react@18.3.1/umd/react.development.js`, then `react-dom@18.3.1/umd/react-dom.development.js` from `https://unpkg.com/`).',
-    'Add Babel: `<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>`.',
-    'Last, load your code with `<script type="text/babel" src="./app.js"></script>`.',
-    'The Movie Night header and movies appear in the preview when everything is right.'
+    { text: 'Replace comment 1 with the **root element**. It starts empty; React draws the whole app inside it.',
+      code: '<div id="root"></div>' },
+    { text: 'Replace comment 2 with these **two script tags**, in this order. The first loads **React**, which builds the components; the second loads **ReactDOM**, which draws them on the page. ReactDOM needs React, so React must come first.',
+      code: '<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>\n<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>' },
+    { text: 'Replace comment 3 with **Babel**. Browsers cannot read JSX (the HTML-like code in `app.js`); Babel translates it into plain JavaScript.',
+      code: '<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>' },
+    { text: 'Replace comment 4 with your **app**. `type="text/babel"` tells Babel to translate this file before it runs.',
+      code: '<script type="text/babel" src="./app.js"></script>' },
+    'Look at the preview: the Movie Night header and four movies appear. If the page stays empty, read the red message in the **Console** strip under the preview.'
   ],
   practise: ['script order', 'the root element', 'type="text/babel"'],
   starter: {
@@ -483,7 +487,8 @@ root.render(<App movies={ movies } />);
   story: 'Alex’s Café needs an order tally: + and − change each item’s quantity and the header shows the order total. The menu row is given; you write the `App` class that owns the state.',
   steps: [
     'Write `class App extends React.Component` with `state = { items: this.props.items }`.',
-    'Add an arrow-function method `handleQtyChange = (delta, id) => { … }` that calls `this.setState(prevState => ({ items: … }))`, mapping over the items and changing only the one with that `id`: `{ ...item, qty: Math.max(item.qty + delta, 0) }`.',
+    { text: 'Add an arrow-function method `handleQtyChange(delta, id)`. It asks React for new state based on the previous state: map over the items and replace only the one with that `id` by a copy with the new quantity (never below 0).',
+      code: 'handleQtyChange = (delta, id) => {\n  this.setState(prevState => ({\n    items: prevState.items.map(item =>\n      item.id === id\n        ? { ...item, qty: Math.max(item.qty + delta, 0) }\n        : item\n    )\n  }));\n}' },
     'In `render()`, work out `orderTotal`: the sum of `price * qty`, with `.toFixed(2)`.',
     'Return the `<div className="menu">` with `<MenuHeader itemCount={…} orderTotal={orderTotal} />` and one `<MenuItem key={item.id} {...item} changeQty={this.handleQtyChange} />` per item.'
   ],
@@ -777,7 +782,8 @@ root.render(<App movies={ movies } />);
   steps: [
     'In `App`, create two pieces of state: `const [movies, setMovies] = React.useState(initialMovies);` and `const [title, setTitle] = React.useState("");`.',
     'Make the input controlled: `value={ title }` and `onChange={ e => setTitle(e.target.value) }`.',
-    'Write `handleSubmit(e)`: call `e.preventDefault()`; if `title.trim()` is empty, stop; otherwise add `{ id: Date.now(), title: title.trim(), year: 2026, genre: "New" }` with `setMovies([...movies, newMovie])`, then clear the box with `setTitle("")`.',
+    { text: 'Write `handleSubmit`. It stops the page reload, ignores a blank title, adds a new movie to a **new** array, and clears the box. Fill in the `…` parts:',
+      code: 'const handleSubmit = (e) => {\n  e.preventDefault();\n  if (!title.trim()) return;\n  const newMovie = { id: Date.now(), title: …, year: 2026, genre: "New" };\n  setMovies([...movies, …]);\n  setTitle(…);\n};' },
     'Connect it with `<form className="add" onSubmit={ handleSubmit }>`, show `{ movies.length }` in the badge, and render the list with `movies.map`.'
   ],
   practise: ['useState', 'controlled inputs', 'onSubmit + preventDefault', 'spread to add'],
@@ -915,9 +921,11 @@ root.render(<App />);
   title: 'Effects: Title, Focus, and a Countdown',
   story: 'Three small side effects for Movie Night: keep the browser tab title up to date, put the cursor in the search box on load, and show a countdown that stops cleanly when hidden.',
   steps: [
-    'In `App`, add an effect that sets `document.title` to `Movie Night (2/4)` (watched / total) and re-runs when `watchedCount` changes: `React.useEffect(() => { … }, [watchedCount]);`.',
+    { text: 'In `App`, add an effect that sets the browser tab title to `Movie Night (2/4)` (watched / total). The array at the end lists what the effect depends on, so it re-runs when `watchedCount` changes:',
+      code: 'React.useEffect(() => {\n  document.title = "Movie Night (" + … + "/" + … + ")";\n}, [watchedCount]);' },
     'Create `const searchRef = React.useRef(null);`, attach it with `ref={ searchRef }` on the search input, and focus it once after the first render (an effect with `[]`).',
-    'In `Countdown`, start `setInterval` in an effect that lowers `seconds` by 1 every second (`setSeconds(s => s - 1)`), and **return a cleanup** function that calls `clearInterval`.',
+    { text: 'In `Countdown`, start a timer in an effect that lowers `seconds` by 1 every second, and **return a cleanup** function. React calls the cleanup when the component disappears:',
+      code: 'React.useEffect(() => {\n  const id = setInterval(() => setSeconds(s => s - 1), 1000);\n  return () => …;   // stop the timer\n}, []);' },
     'The given “Hide countdown” button unmounts `Countdown`; with the cleanup, its timer stops.'
   ],
   practise: ['useEffect + dependencies', 'cleanup functions', 'useRef', 'document.title'],
@@ -1186,7 +1194,8 @@ root.render(<App />);
   title: 'Route to a Movie Details Page',
   story: 'Movie Night gets pages: the watchlist at `/`, a details page for each movie at `/movies/:id`, and a “not found” page for anything else.',
   steps: [
-    'In `App`, inside the given `<MemoryRouter>`, add `<Routes>` with three routes: `path="/"` → `<MovieList />`, `path="/movies/:id"` → `<MovieDetail />`, and `path="*"` → `<NotFound />`.',
+    { text: 'In `App`, inside the given `<MemoryRouter>`, add the routes. Each `<Route>` pairs an address (`path`) with the page to show (`element`); `:id` is a placeholder, and `*` matches anything else:',
+      code: '<Routes>\n  <Route path="/" element={ <MovieList /> } />\n  <Route path="/movies/:id" element={ … } />\n  <Route path="*" element={ … } />\n</Routes>' },
     'In `MovieList`, make each title a `<Link className="movie-link" to={ "/movies/" + movie.id }>` (not an `<a href>`).',
     'In `MovieDetail`, read the id with `const { id } = useParams();`, find the movie (`movies.find(m => m.id === Number(id))`), and show `<h2>{ movie.title }</h2>`, a `<p>` with the year and genre, and `<Link to="/">← Back to the watchlist</Link>`.',
     'Click a movie in the preview, then the back link.'
