@@ -99,6 +99,8 @@ main { max-width: 1400px; margin: 0 auto; padding: 24px 20px 40px; outline: none
 .hero-art { border-radius: 12px; width: 100%; aspect-ratio: 1200 / 460; object-fit: cover; }
 .name-field { display: block; font-weight: 700; color: var(--brown); margin-bottom: 16px; }
 .name-field input { display: block; margin-top: 6px; width: min(340px, 100%); font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.byline { margin: -4px 0 10px; color: var(--muted); font-size: .95rem; }
+.byline a, .foot a { color: var(--copper); font-weight: 600; }
 .hero-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .how { margin-top: 32px; }
 .how-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; counter-reset: how; }
@@ -275,3 +277,18 @@ pre.diff { margin: 0; max-height: 420px; overflow: auto; background: #FBF9F6; bo
 /* a step can show the exact lines to type: steps: [{ text: '…', code: '…' }] */
 .steps pre.step-code { margin: 6px 0 4px; padding: 8px 10px; background: #F4F1EC; border-left: 4px solid var(--copper); border-radius: 6px;
   font: .78rem/1.45 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-all; user-select: all; }
+
+/* ---------- Python labs: output panel instead of a page preview ---------- */
+.py-panel #runBtn { margin-left: 6px; }
+.live.busy::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 6px; border-radius: 50%; border: 2px solid var(--teal); border-right-color: transparent; animation: spin .8s linear infinite; vertical-align: -1px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.py-out { background: #1F1B18; color: #E9E2D8; min-height: 260px; max-height: 520px; overflow: auto; padding: 12px 14px; transition: opacity .2s; }
+.py-out.small { min-height: 120px; max-height: 360px; border-radius: 8px; }
+.py-out.stale { opacity: .55; }
+.py-out pre { margin: 0 0 8px; font: .84rem/1.45 ui-monospace, Menlo, Consolas, monospace; white-space: pre; overflow-x: auto; }
+.py-out .py-error, .py-out .py-warn { white-space: pre-wrap; overflow-wrap: anywhere; }
+.py-out .py-warn { color: #F6D58E; }
+.py-out .py-error { color: #FFB4A8; }
+.py-out .py-empty { margin: 0; color: #B8AEA2; font-size: .9rem; }
+.py-out .py-empty code { color: #E9E2D8; }
+.py-out .py-fig { display: block; max-width: 100%; background: white; border-radius: 6px; margin: 4px 0 10px; }

@@ -12,6 +12,7 @@ const LAB = {
   lead: 'Ten short, hands-on React activities built on the **Movie Night** and **café** case studies. Write the code, see it render, submit it, and get your mistakes explained with the proper code beside yours.',                      // one or two sentences under the title
   footer: 'CSIS 3380 · Web Application Development',                  // footer text, e.g. "CSIS 1280 · Web Design"
   storageKey: 'codeLab.react-code-lab.v1',         // unique per lab, so two labs never share progress
+  author: { name: 'Reza Ghaeli', url: 'https://github.com/RezaGhaeli' },   // credit: home byline, footer, printed results
 
   logo: null,                            // e.g. 'img/logo.png' (wide logo for the dark top bar)
   heroArt: 'img/hero.png',                         // e.g. 'img/hero.png' (wide picture on the home page)

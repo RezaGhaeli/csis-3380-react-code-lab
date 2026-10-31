@@ -3,7 +3,8 @@
   const KEY = LAB.storageKey || 'codeLab.v1';
   const N = ACTIVITIES.length;
   const FILES = Checker.NAMES;                       // file names shown on the tabs (LAB.files)
-  const MODES = { html: 'htmlmixed', css: 'css', js: LAB.jsx ? 'jsx' : 'javascript' };
+  const MODES = { html: 'htmlmixed', css: 'css', js: LAB.jsx ? 'jsx' : 'javascript', py: 'python' };
+  const PY = !!LAB.python;                           // Python lab: Run button and output panel instead of a page preview
   const $ = (s, el = document) => el.querySelector(s);
   const view = $('#view');
 
@@ -20,7 +21,7 @@
   const overall = () => { const r = ACTIVITIES.map(a => result(a.id)).filter(Boolean); return r.length ? Math.round(r.reduce((s, x) => s + x.score, 0) / N) : 0; };
   const bestEver = () => state.history.reduce((m, h) => Math.max(m, h.overall), 0);
   const filesOf = a => Object.keys(FILES).filter(f => a.starter[f] != null || a.solution[f] != null);
-  const kind = f => f === 'js' && LAB.jsx ? 'JSX' : f.toUpperCase();   // what students call the file they write
+  const kind = f => f === 'js' && LAB.jsx ? 'JSX' : f === 'py' ? 'Python' : f.toUpperCase();   // what students call the file they write
 
   /* ---------------------------------------------------------------- helpers */
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -56,12 +57,19 @@
   }
   const codeLines = (lines) => '<pre class="diff">' + lines.map(([t, k], i) => `<span class="ln ${k}"><i>${i + 1}</i>${esc(t) || ' '}</span>`).join('') + '</pre>';
 
+  /* The author's name, linked to their page when LAB.author.url is set. */
+  const byline = () => LAB.author.url ? `<a href="${esc(LAB.author.url)}" target="_blank" rel="noopener author">${esc(LAB.author.name)}</a>` : esc(LAB.author.name);
+
   /* ---------------------------------------------------------------- top bar */
   function renderTop() {
     document.title = LAB.title;
     $('.brand').innerHTML = (LAB.logo ? `<img src="${LAB.logo}" alt="">` : '') + `<span>${esc(LAB.brand || LAB.title)}</span>`;
     $('.brand').classList.toggle('no-logo', !LAB.logo);
-    $('#footText').innerHTML = esc(LAB.footer || LAB.title) + (LAB.guide ? ` · <a href="${LAB.guide}" target="_blank" rel="noopener">Student guide (PDF)</a>` : '') + ' · Your progress is saved in this browser only.';
+    const au = LAB.author;
+    if (au && au.name) {
+      const m = document.createElement('meta'); m.name = 'author'; m.content = au.name; document.head.appendChild(m);
+    }
+    $('#footText').innerHTML = esc(LAB.footer || LAB.title) + (au && au.name ? ` · Created by ${byline()}` : '') + (LAB.guide ? ` · <a href="${LAB.guide}" target="_blank" rel="noopener">Student guide (PDF)</a>` : '') + ' · Your progress is saved in this browser only.';
   }
   function renderStepper(current) {
     $('#stepper').innerHTML = ACTIVITIES.map(a => {
@@ -85,6 +93,7 @@
       <div class="hero-text">
         <p class="kicker">${esc(LAB.kicker || '')}</p>
         <h1>${esc(LAB.title)}</h1>
+        ${LAB.author && LAB.author.name ? `<p class="byline">Created by ${byline()}${LAB.author.url ? ` · <a href="${esc(LAB.author.url)}" target="_blank" rel="noopener">${esc(LAB.author.url.replace(/^https?:\/\//, '').replace(/\/$/, ''))}</a>` : ''}</p>` : ''}
         <p class="lead">${md(LAB.lead || '')}</p>
         <label class="name-field">Your name (shown on your results)
           <input id="nameInput" type="text" autocomplete="name" placeholder="e.g. Jordan Lee" value="${esc(state.name)}">
@@ -113,7 +122,7 @@
         <${open ? 'a' : 'div'} class="act-card ${open ? '' : 'locked'}" ${open ? `href="#/activity/${a.id}"` : 'aria-disabled="true"'}>
           ${art(a.art, 'act-art', String(a.id))}
           <div class="act-body">
-            <span class="chip">${esc(a.module)} · ${kind(a.edit)}</span>
+            <span class="chip">${esc(a.module)}${PY ? '' : ' · ' + kind(a.edit)}</span>
             <strong>${a.id}. ${esc(a.title)}</strong>
             <span class="muted">${esc(a.topic)}</span>
           </div>
@@ -137,12 +146,30 @@
   let cm = null;
   function editors() {
     if (cm) return cm;
-    const mk = mode => CodeMirror(document.createElement('div'), { mode, lineNumbers: true, tabSize: 2, indentUnit: 2, lineWrapping: true,
-      autoCloseTags: mode === 'htmlmixed', autoCloseBrackets: true, matchBrackets: true, viewportMargin: Infinity });
-    cm = { html: mk(MODES.html), css: mk(MODES.css), js: mk(MODES.js) };
+    const mk = mode => { const n = mode === 'python' ? 4 : 2; return CodeMirror(document.createElement('div'), { mode, lineNumbers: true, tabSize: n, indentUnit: n, lineWrapping: true,
+      autoCloseTags: mode === 'htmlmixed', autoCloseBrackets: true, matchBrackets: true, viewportMargin: Infinity,
+      extraKeys: mode === 'python' ? { Tab: c => c.somethingSelected() ? c.indentSelection('add') : c.replaceSelection('    ') } : {} }); };
+    cm = {};
+    for (const f of Object.keys(FILES)) cm[f] = mk(MODES[f]);
     return cm;
   }
-  const current = () => { const ed = editors(); return { html: ed.html.getValue(), css: ed.css.getValue(), js: ed.js.getValue() }; };
+  const current = () => { const ed = editors(), o = {}; for (const f of Object.keys(FILES)) o[f] = ed[f].getValue(); return o; };
+
+  /* ---------------------------------------------------------------- Python output */
+  const goalRuns = {};                               // the proper code's output, per activity (run once)
+  const lastRuns = {};                               // the latest graded run, per activity (with figures)
+  function pyOutput(r) {
+    if (!r) return '<p class="py-empty">Press <strong>▶ Run</strong> (or Ctrl+Enter) to run your code.</p>';
+    const parts = [];
+    if (r.out) parts.push(`<pre class="py-text">${esc(r.out)}</pre>`);
+    for (const f of r.figs || []) parts.push(`<img class="py-fig" alt="A chart your code drew" src="data:image/png;base64,${f}">`);
+    if (!(r.figs || []).length && r.nfigs) parts.push(`<p class="py-empty">(${r.nfigs} chart${r.nfigs > 1 ? 's' : ''}: run the code to see ${r.nfigs > 1 ? 'them' : 'it'})</p>`);
+    const warn = (r.err || '').trim();
+    if (warn) parts.push(`<pre class="py-warn">${esc(warn.split('\n').slice(-6).join('\n'))}</pre>`);
+    if (r.error) parts.push(`<pre class="py-error">${r.line ? 'Line ' + r.line + ': ' : ''}${esc(r.error)}</pre>`);
+    return parts.join('') || '<p class="py-empty">Your code ran without printing anything. Use <code>print()</code> to see values.</p>';
+  }
+  const goalRun = a => goalRuns[a.id] || (goalRuns[a.id] = PyLab.run(a.solution.py));
 
   /* ---------------------------------------------------------------- activity */
   function activity(id) {
@@ -167,7 +194,7 @@
         <p class="chip-row"><span class="chip">${esc(a.module)}</span><span class="chip outline">${esc(a.topic)}</span></p>
         <h1><span class="num">Activity ${a.id} of ${N}</span>${esc(a.title)}</h1>
         <p>${md(a.story)}</p>
-        <div class="you-edit ${a.edit}">You write the <strong>${kind(a.edit)}</strong> in <code>${FILES[a.edit]}</code>.${given.length ? ` The ${given.join(' and ')} ${given.length > 1 ? 'are' : 'is'} given.` : ''}</div>
+        <div class="you-edit ${a.edit}">You write the <strong>${kind(a.edit)}</strong> in <code>${FILES[a.edit]}</code>.${given.length ? ` The ${given.join(' and ')} ${given.length > 1 ? 'are' : 'is'} given.` : ''}${a.data ? ` Data: ${a.data.map(d => `<code>${esc(d)}</code>`).join(', ')}.` : ''}</div>
         <h2>Your task</h2>
         <ol class="steps">${a.steps.map(s => typeof s === 'string' ? `<li>${md(s)}</li>` : `<li>${md(s.text)}${s.code ? `<pre class="step-code">${esc(s.code)}</pre>` : ''}</li>`).join('')}</ol>
         <details class="checklist"><summary>What will be checked (${a.checks.length} items)</summary>
@@ -187,7 +214,17 @@
           <p class="readonly-note" id="roNote" hidden>This file is given and read-only. Switch to the tab marked EDIT to write your code.</p>
         </div>
 
-        <div class="panel preview-panel">
+        ${PY ? `<div class="panel preview-panel py-panel">
+          <div class="preview-bar">
+            <div class="seg" role="group" aria-label="Which output">
+              <button class="on" data-show="mine">Your output</button><button data-show="goal">Goal output</button>
+            </div>
+            <button class="btn small primary" id="runBtn" title="Run your code (Ctrl+Enter)">▶ Run</button>
+            <span class="spacer"></span>
+            <span class="live" id="liveNote"></span>
+          </div>
+          <div class="py-out" id="pyOut" aria-live="polite">${pyOutput(null)}</div>
+        </div>` : `<div class="panel preview-panel">
           <div class="preview-bar">
             <div class="seg" role="group" aria-label="What to preview">
               <button class="on" data-show="mine">Your page</button><button data-show="goal">Goal</button>
@@ -200,7 +237,7 @@
           </div>
           <div class="frame-wrap" id="frameWrap"><iframe id="preview" title="Preview of your page"></iframe></div>
           ${files.includes('js') ? '<div class="console" aria-live="polite"><span class="console-label">Console</span><pre id="consoleOut">(nothing logged yet)</pre></div>' : ''}
-        </div>
+        </div>`}
 
         <div class="submit-row">
           <p class="muted">Happy with it? Submit to see your score, your mistakes, and the proper code.</p>
@@ -210,7 +247,7 @@
         <section id="report" class="report" tabindex="-1" hidden></section>
       </section>
     </div>`;
-    $('#frameWrap').style.setProperty('--phone', (LAB.phoneWidth || 400) + 'px');
+    if (!PY) $('#frameWrap').style.setProperty('--phone', (LAB.phoneWidth || 400) + 'px');
 
     const ed = editors();
     for (const f of Object.keys(FILES)) {
@@ -222,6 +259,7 @@
     }
 
     let showing = 'mine';
+    if (PY) return wirePython(a, ed);
     const preview = $('#preview');
     /* Console panel (JS activities): mirror the preview's console.log output and errors. */
     clearInterval(window.__labConsole);
@@ -270,6 +308,44 @@
     if (result(id)) report(a, result(id), false);
   }
 
+  /* Python labs: nothing runs while typing; ▶ Run (or Ctrl+Enter) runs lab.py and shows its output. */
+  function wirePython(a, ed) {
+    const id = a.id, out = $('#pyOut'), note = $('#liveNote'), runBtn = $('#runBtn');
+    let showing = 'mine', mine = null;
+    PyLab.onStatus(s => { if (note && document.body.contains(note)) { note.textContent = s.note; note.classList.toggle('busy', s.state === 'loading' || s.state === 'running'); } });
+    PyLab.boot().catch(() => {});
+    const runMine = async () => {
+      if (showing !== 'mine') setShowing('mine');
+      runBtn.disabled = true; out.classList.add('stale');
+      mine = await PyLab.run(current().py);
+      runBtn.disabled = false; out.classList.remove('stale');
+      if (showing === 'mine' && document.body.contains(out)) out.innerHTML = pyOutput(mine);
+    };
+    const setShowing = w => {
+      showing = w;
+      view.querySelectorAll('[data-show]').forEach(x => x.classList.toggle('on', x.dataset.show === w));
+      if (w === 'mine') { out.innerHTML = pyOutput(mine); return; }
+      out.innerHTML = '<p class="py-empty">Running the proper code…</p>';
+      goalRun(a).then(r => { if (showing === 'goal' && document.body.contains(out)) out.innerHTML = pyOutput(r); });
+    };
+    ed.py.setOption('extraKeys', Object.assign({}, ed.py.getOption('extraKeys'), { 'Ctrl-Enter': runMine, 'Cmd-Enter': runMine }));
+    ed.py._keep = debounce(() => { state.run.drafts[id] = current(); save(); }, 450);
+    ed.py.on('change', ed.py._keep);
+    /* open at the student's part, below any given code */
+    const yours = ed.py.getValue().split('\n').findIndex(l => /^#.*your code/i.test(l));
+    ed.py.refresh(); ed.py.focus();
+    if (yours > 0) { ed.py.setCursor({ line: yours + 1, ch: 0 }); ed.py.scrollTo(null, ed.py.heightAtLine(yours, 'local') - 8); }
+    view.querySelector('.tab').setAttribute('aria-selected', 'true');
+    view.querySelectorAll('[data-show]').forEach(b => b.addEventListener('click', () => setShowing(b.dataset.show)));
+    runBtn.addEventListener('click', runMine);
+    $('#resetBtn').addEventListener('click', () => {
+      if (!confirm('Replace your code with the starter code for this activity?')) return;
+      ed.py.setValue(a.starter.py || '');
+    });
+    $('#submitBtn').addEventListener('click', () => submit(a));
+    if (result(id)) report(a, result(id), false);
+  }
+
   async function submit(a) {
     const btn = $('#submitBtn');
     btn.disabled = true; btn.textContent = 'Checking…';
@@ -278,6 +354,7 @@
     const prev = result(a.id);
     const r = { score: g.score, earned: g.earned, total: g.total, at: new Date().toISOString(), attempts: (prev ? prev.attempts : 0) + 1,
                 files, passed: g.results.map(x => x.ok), found: g.results.map(x => x.found), lint: g.lint };
+    if (g.run) { lastRuns[a.id] = g.run; r.output = { out: g.run.out.slice(0, 6000), err: g.run.err.slice(0, 1500), error: g.run.error, line: g.run.line, nfigs: g.run.figs.length }; }
     state.run.results[a.id] = r; save();
     btn.disabled = false; btn.textContent = 'Submit again';
     renderStepper(a.id);
@@ -327,16 +404,21 @@
 
       <h3>Compare the results</h3>
       <div class="compare">
-        <div><h4>Your page</h4><div class="mini-frame"><iframe title="Your submitted page" id="mineFrame"></iframe></div></div>
-        <div><h4>Goal</h4><div class="mini-frame"><iframe title="The goal page" id="goalFrame"></iframe></div></div>
+        ${PY ? `<div><h4>Your output</h4><div class="py-out small" id="mineOut">${pyOutput(lastRuns[a.id] || r.output || { out: '' })}</div></div>
+        <div><h4>Goal output</h4><div class="py-out small" id="goalOut"><p class="py-empty">Running the proper code…</p></div></div>`
+        : `<div><h4>Your page</h4><div class="mini-frame"><iframe title="Your submitted page" id="mineFrame"></iframe></div></div>
+        <div><h4>Goal</h4><div class="mini-frame"><iframe title="The goal page" id="goalFrame"></iframe></div></div>`}
       </div>
 
       <div class="report-actions">
         <button class="btn ghost" id="retryBtn">Try this activity again</button>
         <a class="btn primary big" href="${last ? '#/summary' : '#/activity/' + (a.id + 1)}">${last ? 'See my final results →' : 'Next: Activity ' + (a.id + 1) + ' →'}</a>
       </div>`;
-    $('#mineFrame').srcdoc = Checker.compose(files.html, files.css, files.js);
-    $('#goalFrame').srcdoc = Checker.compose(a.solution.html, a.solution.css, a.solution.js);
+    if (PY) goalRun(a).then(g => { const el = $('#goalOut'); if (el) el.innerHTML = pyOutput(g); });
+    else {
+      $('#mineFrame').srcdoc = Checker.compose(files.html, files.css, files.js);
+      $('#goalFrame').srcdoc = Checker.compose(a.solution.html, a.solution.css, a.solution.js);
+    }
     $('#retryBtn').addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); editors()[a.edit].focus(); });
     if (focus) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.focus({ preventScroll: true }); }
   }
@@ -374,7 +456,7 @@
         <button class="btn ghost" onclick="window.print()">Print or save as PDF</button>
         <button class="btn primary big" id="newRun">Start the lab again</button>
       </div>
-      <p class="muted print-note">Printed ${new Date().toLocaleString()} · ${esc(state.name || 'Student')} · Run ${state.run.n}</p>
+      <p class="muted print-note">Printed ${new Date().toLocaleString()} · ${esc(state.name || 'Student')} · Run ${state.run.n}${LAB.author && LAB.author.name ? ` · ${esc(LAB.title)} by ${esc(LAB.author.name)}${LAB.author.url ? ' (' + esc(LAB.author.url) + ')' : ''}` : ''}</p>
     </section>`;
     $('#newRun').addEventListener('click', () => {
       if (!confirm('Start a new run? This run’s scores are saved in your history, and every activity starts fresh.')) return;

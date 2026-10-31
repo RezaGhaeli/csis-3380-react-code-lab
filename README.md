@@ -1,5 +1,7 @@
 # React Code Lab (CSIS 3380, Modules 4–7)
 
+**Created by [Reza Ghaeli](https://github.com/RezaGhaeli)**
+
 Ten auto-graded React activities built on the course case studies (Movie Night and Alex's Café).
 Students write JSX (`app.js`) or HTML in the browser, see it render, submit, and get a score, an
 explanation of every mistake, and the proper code side by side. Progress stays in the browser.
@@ -22,3 +24,7 @@ React 18 and React Router 6 load from unpkg as in the course's CDN projects; Act
 
 Built with the `code-lab-builder` skill. To change an activity, edit `js/activities.js`, add a typical
 mistake to `tests/mistakes.js`, and run `node <skill>/scripts/verify_lab.js .` before publishing.
+
+---
+
+© 2026 Reza Ghaeli · [github.com/RezaGhaeli](https://github.com/RezaGhaeli)

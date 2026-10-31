@@ -9,7 +9,9 @@ const Checker = (() => {
   const CFG = typeof LAB !== 'undefined' ? LAB : {};
   const DESK = CFG.desktopWidth || 960;
   const PHONE = CFG.phoneWidth || 400;
-  const NAMES = Object.assign({ html: 'index.html', css: 'style.css', js: 'script.js' }, CFG.files || {});
+  /* Python labs have one file, lab.py (see pylab.js); web labs have up to three. */
+  const NAMES = CFG.python ? { py: (CFG.files && CFG.files.py) || 'lab.py' }
+                           : Object.assign({ html: 'index.html', css: 'style.css', js: 'script.js' }, CFG.files || {});
   const JSX = !!CFG.jsx;
   const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   /* console noise that is not the student's fault (library deprecation notices) */
@@ -215,8 +217,9 @@ const Checker = (() => {
     return frames;
   }
 
-  /* Grade one activity. files = { html, css, js }. Returns { score, earned, total, results, lint } */
+  /* Grade one activity. files = { html, css, js } (or { py } in a Python lab). Returns { score, earned, total, results, lint } */
   async function grade(activity, files) {
+    if (CFG.python) return PyLab.grade(activity, files);
     const { wide, narrow } = getFrames();
     const src = compose(files.html, files.css, files.js);
     await Promise.all([load(wide, src), load(narrow, src)]);
